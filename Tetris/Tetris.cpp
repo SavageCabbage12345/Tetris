@@ -18,21 +18,47 @@ int main(int argc, char *argv[])
 	SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
 
 	bool running = true;
+
+	Uint64 start;
+	Uint64 end;
+
+	float elapsedMS;
+
 	while (running)
 	{
+		start = SDL_GetPerformanceCounter();
+
 		// handle events
 		SDL_Event event;
-		SDL_PollEvent(&event);
-		switch (event.type)
-		{
-			case SDL_KEYDOWN:
+		while (SDL_PollEvent(&event) != 0) {
+			switch (event.type)
 			{
-				break;
-			}
-			case SDL_QUIT:
-			{
-				running = false;
-				break;
+				case SDL_KEYDOWN:
+				{
+					switch (event.key.keysym.sym) {
+						case SDLK_UP:
+							game.processKey(KEY_UP);
+							break;
+
+						case SDLK_LEFT:
+							game.processKey(KEY_LEFT);
+							break;
+
+						case SDLK_RIGHT:
+							game.processKey(KEY_RIGHT);
+							break;
+
+						case SDLK_DOWN:
+							game.processKey(KEY_DOWN);
+							break;
+					}
+					break;
+				}
+				case SDL_QUIT:
+				{
+					running = false;
+					break;
+				}
 			}
 		}
 
@@ -48,6 +74,13 @@ int main(int argc, char *argv[])
 
 		// flip buffers and display
 		SDL_RenderPresent(renderer);
+
+
+		end = SDL_GetPerformanceCounter();
+		elapsedMS = (end - start) / (float)SDL_GetPerformanceFrequency() * 1000.0f;
+
+		// Cap to 60 FPS
+		SDL_Delay(floor(16.666f - elapsedMS));
 	}
 
 	SDL_DestroyRenderer(renderer);
