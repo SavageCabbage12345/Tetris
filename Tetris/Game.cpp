@@ -115,10 +115,10 @@ bool tetrominoShapes[7][4][4][4] =
 	{0,0,0,0}} } };
 
 Block::Block()
-	: occupied(false), color{ 0, 0, 0 } {};
+	: occupied(false), sourceShape{ SHAPE_I } {};
 
-Block::Block(bool occupied, int color[3])
-	: occupied(occupied), color{ color[0], color[1], color[2] } {};
+Block::Block(bool occupied, TetrominoShape sourceShape)
+	: occupied(occupied), sourceShape{ SHAPE_I } {};
 
 
 Tetromino::Tetromino()
@@ -134,23 +134,30 @@ Game::Game()
 };
 
 void Game::checkForFullRows() {
-	bool fullRows[4] = { 0, 0, 0, 0 };
+	bool fullRow;
 
 	for (int checkRow = currentTetromino.y; (checkRow < (currentTetromino.y + 4)) && (checkRow < 20); ++checkRow) {
-		fullRows[checkRow - currentTetromino.y] = true;
+		fullRow = true;
 		for (int checkCol = 0; checkCol < 10; ++checkCol) {
 			if (!this->playspace[checkCol][checkRow].occupied) {
-				this->rowsToClear[checkRow - currentTetromino.y] = checkRow;
+				fullRow = false;
 				break;
 			}
 		}
-		if (fullRows[checkRow - currentTetromino.y])
+		if (fullRow) {
 			this->clearingRows = true;
+			this->rowsToClear[this->rowClearCount] = checkRow;
+			this->rowClearCount++;
+		}
 	}
 }
 
 void Game::nextTetromino() {
 	this->currentTetromino = Tetromino(TetrominoShape(rand() % 7), rand() % 4, 0, 0);
+	
+	if (this->framesPerFall > 20) {
+		this->framesPerFall--;
+	}
 }
 
 void Game::freezeCurrentTetromino() {
@@ -162,9 +169,7 @@ void Game::freezeCurrentTetromino() {
 				continue;
 
 			this->playspace[this->currentTetromino.x + x][this->currentTetromino.y + y].occupied = true;
-			this->playspace[this->currentTetromino.x + x][this->currentTetromino.y + y].color[0] = 255;
-			this->playspace[this->currentTetromino.x + x][this->currentTetromino.y + y].color[1] = 255;
-			this->playspace[this->currentTetromino.x + x][this->currentTetromino.y + y].color[2] = 255;
+			this->playspace[this->currentTetromino.x + x][this->currentTetromino.y + y].sourceShape = this->currentTetromino.shape;
 		}
 	}
 
@@ -271,28 +276,39 @@ void Game::update() {
 	this->currentTetromino.last_y = this->currentTetromino.y;
 
 	if (this->clearingRows) {
-		/*for (int eraseRow = currentTetromino.y; eraseRow < (currentTetromino.y + 4); ++eraseRow) {
-			if (!fullRows[eraseRow - currentTetromino.y])
-				continue;
-			for (int eraseCol = 0; eraseCol < 10; ++eraseCol) {
-				this->playspace[eraseCol][eraseRow].occupied = false;
+		this->rowDeleteCount++;
+
+		if ((this->rowDeleteCount % 20) == 0) {
+			int eraseRow;
+			for (int eraseIndex = 0; eraseIndex < this->rowClearCount; eraseIndex++) {
+				eraseRow = this->rowsToClear[eraseIndex];
+				for (int eraseCol = 0; eraseCol < 10; ++eraseCol) {
+					this->playspace[eraseCol][eraseRow].occupied = !this->playspace[eraseCol][eraseRow].occupied;
+				}
 			}
 		}
 
-		for (int erasedRow = currentTetromino.y; erasedRow < (currentTetromino.y + 4); ++erasedRow) {
-			if (!fullRows[erasedRow - currentTetromino.y])
-				continue;
-			for (int moveRow = erasedRow; moveRow > 0; --moveRow) {
-				for (int moveCol = 0; moveCol < 10; ++moveCol) {
-					this->playspace[moveCol][moveRow].occupied = this->playspace[moveCol][moveRow - 1].occupied;
+		if (this->rowDeleteCount == 80) {
+			int erasedRow;
+			for (int erasedIndex = 0; erasedIndex < this->rowClearCount; erasedIndex++) {
+				erasedRow = this->rowsToClear[erasedIndex];
+				for (int moveRow = erasedRow; moveRow > 0; --moveRow) {
+					for (int moveCol = 0; moveCol < 10; ++moveCol) {
+						this->playspace[moveCol][moveRow].occupied = this->playspace[moveCol][moveRow - 1].occupied;
+						this->playspace[moveCol][moveRow].sourceShape = this->playspace[moveCol][moveRow - 1].sourceShape;
+					}
 				}
 			}
-		}*/
+
+			this->rowDeleteCount = 0;
+			this->clearingRows = false;
+			this->rowClearCount = 0;
+		}
 	}
 
 	this->downCount++;
 
-	if (this->downCount == 60) {
+	if (this->downCount == this->framesPerFall) {
 		this->downCount = 0;
 
 		Game::processDownMove();
@@ -317,6 +333,8 @@ void Game::processKey(Key key) {
 			break;
 
 		case KEY_DOWN:
+			if (this->clearingRows)
+				break;
 			this->processDownMove();
 			break;
 	}

@@ -5,21 +5,21 @@
 
 extern bool tetrominoShapes[7][4][4][4];
 
-struct Block {
-	bool occupied;
-	int color[3];
-
-	Block();
-
-	Block(bool occupied, int color[3]);
-};
-
 enum Key {
 	KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT
 };
 
 enum TetrominoShape {
 	SHAPE_I, SHAPE_J, SHAPE_L, SHAPE_O, SHAPE_S, SHAPE_T, SHAPE_Z
+};
+
+struct Block {
+	bool occupied;
+	TetrominoShape sourceShape;
+
+	Block();
+
+	Block(bool occupied, TetrominoShape sourceShape);
 };
 
 struct Tetromino {
@@ -41,8 +41,10 @@ class Game {
 private:
 	int rowDeleteCount = 0;
 	bool clearingRows = false;
+	int rowClearCount = 0;
 	int rowsToClear[4] = { 0, 0, 0, 0 };
 
+	int framesPerFall = 90;
 	int downCount = 0;
 
 	void checkForFullRows();
