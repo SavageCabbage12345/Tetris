@@ -249,7 +249,6 @@ void Game::processRotation() {
 
 			if ((this->currentTetromino.y + y) >= 20){
 				this->currentTetromino.orientation = (this->currentTetromino.orientation - 1) % 4;
-				this->currentTetromino.x = this->currentTetromino.last_x;
 				return;
 			}
 		}
